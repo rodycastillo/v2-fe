@@ -1,5 +1,35 @@
 <template>
   <div class="container">
+    <h1>NOTAS</h1>
+    <b-alert
+      :show="dismissCountDown"
+      dismissible
+      :variant="mensaje.color"
+      @dismissed="dismissCountDown = 0"
+      @dismiss-count-down="countDownChanged"
+    >
+      {{ mensaje.texto }}
+    </b-alert>
+
+    <form @submit.prevent="addNota(nota)" v-if="agregar">
+      <h3 class="text-center">Agregar nueva Nota</h3>
+      <input
+        type="text"
+        placeholder="Ingrese un Nombre"
+        class="form-control my-2"
+        v-model="nota.nombre"
+      />
+      <input
+        type="text"
+        placeholder="Ingrese una descripcion"
+        class="form-control my-2"
+        v-model="nota.descripcion"
+      />
+      <b-button class="btn-sm btn-block btn-success" type="submit"
+        >Agregar</b-button
+      >
+    </form>
+
     <table class="table">
       <thead>
         <tr>
@@ -39,15 +69,25 @@ export default {
   data() {
     return {
       notas: [],
+      mensaje: { color: "", texto: "" },
+      dismissSecs: 5,
+      dismissCountDown: 0,
+      nota: { nombre: "", descripcion: "" },
+      agregar: true,
     };
   },
   created() {
-    this.listarNotas();
+    this.listNotes();
   },
   methods: {
-    listarNotas() {
+    alert() {
+      this.mensaje.color = "danger";
+      this.mensaje.texto = "Probando alerta";
+      this.showAlert();
+    },
+    listNotes() {
       this.axios
-        .get("notas")
+        .get("/notas")
         .then((response) => {
           // console.log(response.data)
           this.notas = response.data;
@@ -55,6 +95,50 @@ export default {
         .catch((e) => {
           console.log("error" + e);
         });
+    },
+    addNota(item) {
+      this.axios
+        .post("/nueva-nota", item)
+        .then((res) => {
+          // Agrega al inicio de nuestro array notas
+          this.notas.unshift(res.data);
+
+          // Alerta de mensaje
+          this.showAlert();
+          this.mensaje.texto = "Notas Agregada!";
+          this.mensaje.color = "success";
+        })
+        .catch((e) => {
+          console.log(e.response.data.error.errors.nombre.message);
+
+          // Alerta de mensaje
+          this.showAlert();
+          this.mensaje.color = "danger";
+          this.mensaje.texto = e.response.data.error.errors.nombre.message;
+        });
+      this.notas = {};
+    },
+    eliminarNota(id) {
+      this.axios
+        .delete(`nota/${id}`)
+        .then((res) => {
+          let index = this.notas.findIndex((item) => item._id === res.data._id);
+          this.notas.splice(index, 1);
+
+          this.showAlert();
+          this.mensaje.texto = "Notas Eliminada!";
+          this.mensaje.color = "danger";
+        })
+        .catch((e) => {
+          console.log(e.response);
+        });
+    },
+
+    countDownChanged(dismissCountDown) {
+      this.dismissCountDown = dismissCountDown;
+    },
+    showAlert() {
+      this.dismissCountDown = this.dismissSecs;
     },
   },
 };
