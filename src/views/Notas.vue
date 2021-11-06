@@ -29,6 +29,32 @@
         >Agregar</b-button
       >
     </form>
+    <form @submit.prevent="editarNota(notaEditar)" v-if="!agregar">
+      <h3 class="text-center">Editar Nota</h3>
+      <input
+        type="text"
+        placeholder="Ingrese un Nombre"
+        class="form-control my-2"
+        v-model="notaEditar.nombre"
+      />
+      <input
+        type="text"
+        placeholder="Ingrese una descripcion"
+        class="form-control my-2"
+        v-model="notaEditar.descripcion"
+      />
+      <b-button class="btn-sm btn-block mb-1 btn-warning" type="submit"
+        >Editar</b-button
+      >
+      <b-button class="btn-sm btn-block" @click="agregar = true"
+        >Cancelar</b-button
+      >
+    </form>
+
+    <!-- Dentro del ciclo for (Tabla) -->
+    <b-button class="btn-warning btn-sm mx-2" @click="activarEdicion(item._id)"
+      >Actualizar</b-button
+    >
 
     <table class="table">
       <thead>
@@ -50,7 +76,7 @@
             <b-button
               class="btn-warning btn-sm mx-2"
               @click="activarEdicion(item._id)"
-              >Actualizar</b-button
+              >Editar</b-button
             >
             <b-button
               class="btn-danger btn-sm mx-2"
@@ -74,6 +100,7 @@ export default {
       dismissCountDown: 0,
       nota: { nombre: "", descripcion: "" },
       agregar: true,
+      notaEditar: {},
     };
   },
   created() {
@@ -102,35 +129,68 @@ export default {
         .then((res) => {
           // Agrega al inicio de nuestro array notas
           this.notas.unshift(res.data);
+          this.nota.nombre = "";
+          this.nota.descripcion = "";
 
           // Alerta de mensaje
-          this.showAlert();
           this.mensaje.texto = "Notas Agregada!";
           this.mensaje.color = "success";
+          this.showAlert();
         })
         .catch((e) => {
-          console.log(e.response.data.error.errors.nombre.message);
+          // console.log(e.response.data.error.errors.nombre.message);
 
           // Alerta de mensaje
-          this.showAlert();
           this.mensaje.color = "danger";
           this.mensaje.texto = e.response.data.error.errors.nombre.message;
+          this.showAlert();
         });
-      this.notas = {};
+      // this.notas = {};
     },
     eliminarNota(id) {
       this.axios
-        .delete(`nota/${id}`)
+        .delete(`/nota/${id}`)
         .then((res) => {
           let index = this.notas.findIndex((item) => item._id === res.data._id);
           this.notas.splice(index, 1);
 
-          this.showAlert();
           this.mensaje.texto = "Notas Eliminada!";
           this.mensaje.color = "danger";
+          this.showAlert();
         })
         .catch((e) => {
           console.log(e.response);
+        });
+    },
+    activarEdicion(id) {
+      this.agregar = false;
+      this.axios
+        .get(`/nota/${id}`)
+        .then((res) => {
+          this.notaEditar = res.data;
+        })
+        .catch((e) => {
+          console.log(e.response);
+        });
+    },
+    editarNota(item) {
+      this.axios
+        .put(`/nota/${item._id}`, item)
+        .then((res) => {
+          let index = this.notas.findIndex(
+            (itemNota) => itemNota._id === res.data._id
+          );
+          this.notas[index].nombre = res.data.nombre;
+          this.notas[index].descripcion = res.data.descripcion;
+          // this.notaEditar = {};
+
+          this.mensaje.texto = "Nota Actualizada";
+          this.mensaje.color = "success";
+          this.showAlert();
+          this.agregar = true;
+        })
+        .catch((e) => {
+          console.log(e);
         });
     },
 
